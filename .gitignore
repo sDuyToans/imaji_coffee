@@ -1,0 +1,32 @@
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+**/application-secret.properties
+**/*.pem
+**/*.key
+
+# Local database/runtime data
+/db/
+*.log
+*.pid
+
+# Java / Maven
+**/target/
+**/.mvn/timing.properties
+
+# Node / Vite
+**/node_modules/
+**/dist/
+**/.npm/
+**/.eslintcache
+
+# IDE and OS files
+**/.idea/
+**/.vscode/
+**/*.iml
+.DS_Store
+**/.DS_Store
+
+# Nested repository metadata; the root repository is canonical
+**/.git/

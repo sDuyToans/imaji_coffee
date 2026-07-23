@@ -1,0 +1,156 @@
+@import "tailwindcss";
+@layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
+    input[type='number']::-webkit-outer-spin-button,
+    input[type='number']::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+
+    input[type='number'] {
+        -moz-appearance: textfield;
+    }
+}
+@theme {
+    /*BRAND COLORS*/
+    --color-primary: #A27B5C;
+    --color-primary-surface-light: #ECE5DE;
+    --color-primary-border: #E0D3C9;
+    --color-primary-hover: #87674D;
+    --color-primary-pressed: #513E2E;
+    --color-primary-focus: #A27B5C - 20%;
+
+    --color-secondary: #3F4E4F;
+    --color-secondary-surface-light: #D9DCDC;
+    --color-secondary-border: #BFC4C4;
+    --color-secondary-hover: #354142;
+    --color-secondary-pressed: #202728;
+    --color-secondary-focus: #3F4E4F - 20%;
+    /*BRAND COLORS*/
+
+    /*SEMANTIC COLORS*/
+    --color-yellow: #FFA90B;
+    --color-yellow-surface-light: #FFEECE;
+    --color-yellow-border: #FFE2AE;
+    --color-yellow-hover: #D48D09;
+    --color-yellow-pressed: #553804;
+    --color-yellow-focus: #FFA90B - 20%;
+
+    --color-green: #22D7A6;
+    --color-green-surface-light: #D3F7ED;
+    --color-green-border: #B5F2E1;
+    --color-green-hover: #178F6F;
+    --color-green-pressed: #0B4837;
+    --color-green-focus: #22D7A6 - 20%;
+
+    --color-red: #F14C35;
+    --color-red-surface-light: #FCDBD7;
+    --color-red-border: #FAC3BC;
+    --color-red-hover: #A13323;
+    --color-red-pressed: #501912;
+    --color-red-focus: #F14C35 - 20%;
+
+    --color-blue: #129BFF;
+    --color-blue-surface-light: #D0EBFF;
+    --color-blue-border: #B0DEFF;
+    --color-blue-hover: #0C67AA;
+    --color-blue-pressed: #063455;
+    --color-blue-focus: #129BFF - 20%;
+
+    --color-purple: #5A3CF3;
+    --color-purple-surface-light: #DED8FD;
+    --color-purple-border: #C8BEFB;
+    --color-purple-hover: #3C28A2;
+    --color-purple-pressed: #1E1451;
+    --color-purple-focus: #5A3CF3 - 20%;
+    /*SEMANTIC COLORS*/
+
+    /*NEUTRAL COLORS*/
+    --color-black: #121212;
+    --color-dark-grey-90: #4D4D4D;
+    --color-dark-grey-70: #7F7F7F;
+    --color-light-grey-40: #E3E3E3;
+    --color-light-grey-20: #F6F6F6;
+    --color-white: #FFFFFF;
+    /*NEUTRAL COLORS*/
+
+
+    /*FONTS SIZE && LINE HEIGHT*/
+    --text-xs: 12px;
+    --text-xs--line-height: 16px;
+    --text-sm: 14px;
+    --text-sm--line-height: 20px;
+    --text-base: 16px;
+    --text-base--line-height: 24px;
+    --text-lg: 18px;
+    --text-lg--line-height: 28px;
+    --text-xl: 20px;
+    --text-xl--line-height: 28px;
+    --text-2xl: 24px;
+    --text-2xl--line-height: 32px;
+    --text-3xl: 30px;
+    --text-3xl--line-height: 36px;
+    --text-4xl: 36px;
+    --text-4xl--line-height: 40px;
+    --text-5xl: 48px;
+    --text-5xl--line-height: auto;
+    --text-6xl: 60px;
+    --text-6xl--line-height: auto;
+    --text-7xl: 72px;
+    --text-7xl--line-height: auto;
+    --text-8xl: 96px;
+    --text-8xl--line-height: auto;
+    --text-9xl: 128px;
+    --text-9xl--line-height: auto;
+    /*FONTS SIZE && LINE HEIGHT*/
+
+    /*SPACING*/
+    --spacing-0-5: 2px;
+    --spacing-1: 4px;
+    --spacing-2: 8px;
+    --spacing-3: 12px;
+    --spacing-4: 16px;
+    --spacing-5: 20px;
+    --spacing-6: 24px;
+    --spacing-7: 28px;
+    --spacing-8: 32px;
+    --spacing-9: 36px;
+    --spacing-10: 40px;
+    --spacing-11: 44px;
+    --spacing-12: 48px;
+    /*SPACING*/
+
+    /*BORDER RADIUS*/
+    --rounded-none: 0;
+    --rounded-sm: 2px;
+    --rounded: 4px;
+    --rounded-md: 6px;
+    --rounded-lg: 8px;
+    --rounded-xl: 12px;
+    --rounded-2xl: 16px;
+    --rounded-3xl: 24px;
+    --rounded-full: 9999px;
+    /*BORDER RADIUS*/
+}
+
+.active {
+    position: relative;
+}
+
+.active::after {
+    content: "";
+    position: absolute;
+    bottom: -50%;
+    left: 50%;
+    width: 50%;
+    transform: translateX(-50%);
+    height: 10%;
+    background-color: #A27B5C;
+}
+
+
+
+@config "../../tailwind.config.js"

@@ -1,0 +1,15 @@
+#GET http://localhost:8080/api/v1/products?size=4
+
+GET http://localhost:8080/api/v1/products?category=coffee_baverage&page=2&size=8
+
+
+#GET http://localhost:8080/api/v1/products/search?category=coffee_baverage&page=0&size=8&maxPrice=all&sortBy=createdAt&sortDirection=desc
+
+
+#GET http://localhost:8080/api/v1/products/detail/1
+
+
+#GET http://localhost:8080/api/v1/products?category=at_home&size=5ssdasdsa
+
+
+#GET http://localhost:8080/api/v1/products/related?category=at_home&size=4&excludedId=1

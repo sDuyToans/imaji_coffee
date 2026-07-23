@@ -1,0 +1,36 @@
+Imaji Coffee - Order Confirmed
+
+Hi {{customerName}},
+Your order has been confirmed and we're preparing it now.
+
+Order number: {{orderNumber}}
+Order date: {{orderDate}}
+Payment status: {{paymentStatus}}
+Estimated delivery: {{estimatedDelivery}}
+
+Items:
+{{itemsTextRows}}
+
+Subtotal: {{subtotal}}
+Discount: -{{discount}}
+Tax: {{tax}}
+Shipping: {{shipping}}
+Total: {{total}}
+
+Shipping address:
+{{shippingAddress}}
+
+Payment method:
+{{paymentMethod}} (no sensitive card data stored)
+
+View your order: {{viewOrderUrl}}
+Continue shopping: {{continueShoppingUrl}}
+Support: {{contactSupportUrl}}
+Privacy policy: {{privacyPolicyUrl}}
+Terms: {{termsUrl}}
+Preferences: {{preferencesUrl}}
+
+Imaji Coffee
+{{contactAddress}}
+{{contactPhone}} | {{contactEmail}}
+© {{currentYear}} Imaji Coffee. All rights reserved.

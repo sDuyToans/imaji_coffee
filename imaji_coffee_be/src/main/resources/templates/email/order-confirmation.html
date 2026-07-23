@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Order confirmed</title>
+  <style>
+    body { margin:0; padding:0; background:#f4f1ee; font-family:Arial,Helvetica,sans-serif; color:#111827; }
+    .container { width:100%; max-width:640px; margin:0 auto; background:#ffffff; }
+    .content { padding:24px; }
+    .button { display:inline-block; padding:12px 20px; border-radius:8px; font-weight:700; text-decoration:none; }
+    .btn-primary { background:#5b3216; color:#ffffff !important; }
+    .btn-secondary { background:#f3f4f6; color:#111827 !important; }
+    .summary td { padding:6px 0; font-size:14px; }
+    @media only screen and (max-width: 640px) {
+      .content { padding:16px !important; }
+      .button { display:block !important; text-align:center !important; margin-bottom:10px !important; }
+    }
+  </style>
+</head>
+<body>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f1ee; padding:16px;">
+  <tr>
+    <td align="center">
+      <table role="presentation" class="container" width="640" cellpadding="0" cellspacing="0" style="border-radius:14px; overflow:hidden;">
+        <tr>
+          <td style="background:#2b1a11; padding:20px 24px;">
+            <img src="{{brandLogoUrl}}" alt="Imaji Coffee logo" width="120" style="display:block;">
+          </td>
+        </tr>
+        <tr>
+          <td class="content">
+            <h1 style="margin:0 0 8px; color:#2b1a11; font-size:28px; line-height:1.2;">Order Confirmed</h1>
+            <p style="margin:0 0 14px; font-size:16px; color:#374151;">Hi {{customerName}}, thanks for your order. We are preparing your coffee now.</p>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; margin:0 0 18px;">
+              <tr>
+                <td style="padding:12px 14px; font-size:14px;">
+                  <strong>Order:</strong> {{orderNumber}}<br>
+                  <strong>Date:</strong> {{orderDate}}<br>
+                  <strong>Payment status:</strong> {{paymentStatus}}<br>
+                  <strong>Estimated delivery:</strong> {{estimatedDelivery}}
+                </td>
+              </tr>
+            </table>
+
+            <h2 style="margin:0 0 10px; font-size:18px; color:#2b1a11;">Items</h2>
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; overflow:hidden; margin-bottom:14px;">
+              <thead>
+              <tr>
+                <th scope="col" style="padding:12px 10px; text-align:left; color:#6b7280; font-size:12px;">Image</th>
+                <th scope="col" style="padding:12px 10px; text-align:left; color:#6b7280; font-size:12px;">Product</th>
+                <th scope="col" style="padding:12px 10px; text-align:center; color:#6b7280; font-size:12px;">Qty</th>
+                <th scope="col" style="padding:12px 10px; text-align:right; color:#6b7280; font-size:12px;">Amount</th>
+              </tr>
+              </thead>
+              <tbody>
+              {{itemsRows}}
+              </tbody>
+            </table>
+
+            <table role="presentation" width="100%" class="summary" cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+              <tr><td>Subtotal</td><td align="right">{{subtotal}}</td></tr>
+              <tr><td>Discount</td><td align="right">-{{discount}}</td></tr>
+              <tr><td>Tax</td><td align="right">{{tax}}</td></tr>
+              <tr><td>Shipping</td><td align="right">{{shipping}}</td></tr>
+              <tr><td style="padding-top:10px; font-size:16px;"><strong>Total</strong></td><td align="right" style="padding-top:10px; font-size:16px;"><strong>{{total}}</strong></td></tr>
+            </table>
+
+            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb; border-radius:10px; margin-bottom:16px;">
+              <tr>
+                <td style="padding:12px 14px; font-size:14px; color:#374151;">
+                  <strong>Shipping address</strong><br>
+                  {{shippingAddress}}<br><br>
+                  <strong>Payment method</strong><br>
+                  {{paymentMethod}} (no sensitive card data stored)
+                </td>
+              </tr>
+            </table>
+
+            <a class="button btn-primary" href="{{viewOrderUrl}}">View Your Order</a>
+            <div style="height:10px;"></div>
+            <a class="button btn-secondary" href="{{continueShoppingUrl}}">Continue Shopping</a>
+
+            <p style="margin:18px 0 0; font-size:13px; color:#6b7280;">
+              Need help? <a href="{{contactSupportUrl}}" style="color:#5b3216;">Contact Support</a> ·
+              <a href="{{privacyPolicyUrl}}" style="color:#5b3216;">Privacy Policy</a> ·
+              <a href="{{termsUrl}}" style="color:#5b3216;">Terms</a>
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#f8f5f2; padding:16px 24px; font-size:12px; color:#6b7280;">
+            <strong style="color:#2b1a11;">Imaji Coffee</strong><br>
+            {{contactAddress}}<br>
+            {{contactPhone}} · {{contactEmail}}<br><br>
+            Manage your email preferences: <a href="{{preferencesUrl}}" style="color:#5b3216;">Preferences</a><br>
+            © {{currentYear}} Imaji Coffee. All rights reserved.
+          </td>
+        </tr>
+      </table>
+    </td>
+  </tr>
+</table>
+</body>
+</html>

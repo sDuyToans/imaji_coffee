@@ -1,0 +1,4 @@
+GET http://localhost:8080/api/v1/account
+Authorization: Bearer eyJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0MkBnbWFpbC5jb20iLCJ1c2VybmFtZSI6InRlc3R1c2VyMiIsInJvbGVzIjoiUk9MRV9ST0xFX1VTRVIiLCJpYXQiOjE3NTc5OTUyNTksImV4cCI6MTc2MDU4NzI1OX0.9gUjOaJ0dF0oH-mbzp6shnzBiGRKp3ft1mnQYQqQzHA
+Content-Type: application/json
+

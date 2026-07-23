@@ -1,0 +1,263 @@
+### Chat WebSocket & REST API Testing
+### Environment variables - customize as needed
+@host = localhost:8080
+@customerId = 1
+@adminId = 2
+@conversationId = 1
+
+### ============================================
+### REST ENDPOINTS - HTTP Testing
+### ============================================
+
+### Create a new conversation for customer
+POST http://{{host}}/api/v1/chat/customer/{{customerId}}
+Content-Type: application/json
+
+###
+
+### Get or create current conversation for customer
+GET http://{{host}}/api/v1/chat/customer/{{customerId}}/current
+
+###
+
+### Start or fetch the logged-in user's conversation
+POST http://{{host}}/api/v1/chat/me/current
+Authorization: Bearer {{token}}
+
+###
+
+### Get the logged-in user's current conversation
+GET http://{{host}}/api/v1/chat/me/current
+Authorization: Bearer {{token}}
+
+###
+
+### Get all conversations for a customer
+GET http://{{host}}/api/v1/chat/customer/{{customerId}}
+
+###
+
+### Get all conversations assigned to an admin
+GET http://{{host}}/api/v1/chat/admin/{{adminId}}
+
+###
+
+### Get assigned admin for a conversation
+GET http://{{host}}/api/v1/chat/{{conversationId}}/admin
+
+###
+
+### Get all messages in a conversation
+GET http://{{host}}/api/v1/chat/{{conversationId}}/messages
+
+###
+
+### Close a conversation (customer or assigned admin)
+PUT http://{{host}}/api/v1/chat/{{conversationId}}/close?userId={{customerId}}
+Content-Type: application/json
+
+###
+
+### Reassign conversation to another admin (admin-only)
+PUT http://{{host}}/api/v1/chat/{{conversationId}}/reassign/{{adminId}}
+Content-Type: application/json
+
+###
+
+
+### ============================================
+### WebSocket STOMP Testing
+### ============================================
+### For WebSocket testing, use these in your client (JavaScript/React):
+
+# 1. Connect to WebSocket endpoint:
+# const socket = new SockJS('http://localhost:8080/api/v1');
+# const stompClient = Stomp.over(socket);
+#
+# stompClient.connect({}, function(frame) {
+#     console.log('Connected:', frame);
+#
+#     // 2. Subscribe to receive messages for a conversation
+#     stompClient.subscribe('/user/queue/chat/messages/1', function(msg) {
+#         const message = JSON.parse(msg.body);
+#         console.log('New message:', message);
+#     });
+#
+#     // 3. Subscribe to receive error messages
+#     stompClient.subscribe('/user/queue/errors', function(msg) {
+#         console.error('Error:', msg.body);
+#     });
+#
+#     // 4. Subscribe to chat notifications
+#     stompClient.subscribe('/user/queue/chat/notifications', function(msg) {
+#         const notification = JSON.parse(msg.body);
+#         console.log('Chat notification:', notification);
+#     });
+# });
+
+# 5. Send a message to a conversation:
+# stompClient.send('/api/v1/app/chat.sendMessage/1',
+#     {'content-type': 'application/json'},
+#     JSON.stringify({
+#         content: 'Hello from chat!',
+#         senderName: 'John Doe',
+#         senderType: 'USER'   // or 'ADMIN'
+#         // senderId can be omitted if the websocket session is authenticated
+#     })
+# );
+
+
+### ============================================
+### Client Example (React)
+### ============================================
+#
+# import React, { useEffect, useState } from 'react';
+# import SockJS from 'sockjs-client';
+# import { Client as StompClient } from '@stomp/stompjs';
+#
+# export default function ChatComponent() {
+#     const [messages, setMessages] = useState([]);
+#     const [conversationId] = useState(1);
+#     const [userId] = useState(1); // Current logged-in user
+#     const [stompClient, setStompClient] = useState(null);
+#
+#     useEffect(() => {
+#         // Connect to WebSocket
+#         const socket = new SockJS('http://localhost:8080/api/v1');
+#         const client = StompClient.over(socket);
+#
+#         client.onConnect = function(frame) {
+#             console.log('Connected:', frame);
+#
+#             // Subscribe to conversation messages (private user queue)
+#             client.subscribe(`/user/queue/chat/messages/${conversationId}`, (msg) => {
+#                 const message = JSON.parse(msg.body);
+#                 setMessages(prev => [...prev, message]);
+#             });
+#
+#             // Subscribe to errors
+#             client.subscribe('/user/queue/errors', (msg) => {
+#                 console.error('Error:', msg.body);
+#             });
+#         };
+#
+#         client.connect({}, () => {
+#             setStompClient(client);
+#         });
+#
+#         return () => {
+#             if (client.connected) {
+#                 client.disconnect();
+#             }
+#         };
+#     }, [conversationId]);
+#
+#     const sendMessage = (content) => {
+#         if (stompClient && stompClient.connected) {
+#             stompClient.send(`/api/v1/app/chat.sendMessage/${conversationId}`,
+#                 {'content-type': 'application/json'},
+#                 JSON.stringify({
+#                     content: content,
+#                     senderName: 'User Name',
+#                     senderType: 'USER',
+#                     senderId: userId
+#                 })
+#             );
+#         }
+#     };
+#
+#     return (
+#         <div>
+#             {messages.map((msg, idx) => (
+#                 <div key={idx}>
+#                     <strong>{msg.senderName}:</strong> {msg.content}
+#                 </div>
+#             ))}
+#             <input onKeyPress={(e) => {
+#                 if (e.key === 'Enter') {
+#                     sendMessage(e.target.value);
+#                     e.target.value = '';
+#                 }
+#             }} />
+#         </div>
+#     );
+# }
+
+
+### ============================================
+### Message Format (JSON)
+### ============================================
+
+# ChatMessageRequest:
+{
+  "content": "Hello, how can I help you?",
+  "senderName": "Admin John",
+  "senderType": "ADMIN",
+  "senderId": 2
+}
+
+# ChatMessageResponse:
+{
+  "id": 1,
+  "conversationId": 1,
+  "content": "Hello, how can I help you?",
+  "senderName": "Admin John",
+  "senderType": "ADMIN",
+  "senderId": 2,
+  "createdAt": "2026-05-24T10:30:00Z"
+}
+
+# ChatConversationResponse:
+{
+  "id": 1,
+  "customerId": 1,
+  "assignedAdminId": 2,
+  "status": "OPEN",
+  "queuePosition": null,
+  "waitMessage": null,
+  "createdAt": "2026-05-24T10:00:00Z",
+  "updatedAt": "2026-05-24T10:30:00Z"
+}
+
+# If no admin is available:
+{
+  "id": 1,
+  "customerId": 1,
+  "assignedAdminId": null,
+  "status": "WAITING",
+  "queuePosition": 3,
+  "waitMessage": "All admins are currently busy. You are in queue position 3.",
+  "createdAt": "2026-05-24T10:00:00Z",
+  "updatedAt": "2026-05-24T10:00:00Z"
+}
+
+
+### ============================================
+### Features & Behavior
+### ============================================
+
+# CONCURRENCY HANDLING:
+# - Multiple concurrent chats are handled via private user queues
+# - Each conversation has its own message thread
+# - Admins with heavy load get fewer new conversations (least-busy assignment)
+# - Max conversations per admin: distribute evenly
+
+# AUTHORIZATION:
+# - Only customer or assigned admin can send messages
+# - Only authorized parties can view messages
+# - Unauthorized access returns 403 error via /user/queue/errors
+
+# CONVERSATION STATUSES:
+# - OPEN: New conversation, waiting for admin acceptance
+# - PENDING: Assigned to admin, awaiting response
+# - CLOSED: Conversation ended, no new messages allowed
+
+# MESSAGE ROUTING:
+# - Messages automatically sent to both customer AND assigned admin
+# - Uses private user queues (/user/queue/chat/messages/{conversationId})
+# - Notifications are sent on /user/queue/chat/notifications:
+#   - USER_MESSAGE: to assigned admin when a user sends a message
+#   - ADMIN_MESSAGE: to customer when an admin sends a message
+# - Real-time delivery via WebSocket
+
+### ============================================
