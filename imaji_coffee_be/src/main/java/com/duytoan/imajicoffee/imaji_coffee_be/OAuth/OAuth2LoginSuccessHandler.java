@@ -36,6 +36,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     @Value("${app.frontend.redirect-url}")
     private String frontEndRedirectUrl;
 
+    @Value("${app.cookie.secure}")
+    private boolean cookieSecure;
+
+    @Value("${app.cookie.same-site}")
+    private String cookieSameSite;
+
     /**
      * Set JWT token to Cookie
      * @param request
@@ -65,9 +71,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         ResponseCookie cookie = ResponseCookie
                 .from("token", token)
                 .httpOnly(true)
-                .secure(false)
+                .secure(cookieSecure)
                 .path("/")
-                .sameSite("Lax")
+                .sameSite(cookieSameSite)
                 .maxAge(Duration.ofDays(30))
                 .build();
 

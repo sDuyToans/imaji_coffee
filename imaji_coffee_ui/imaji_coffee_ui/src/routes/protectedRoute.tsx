@@ -4,6 +4,8 @@ import { Navigate } from "react-router-dom";
 
 import { LoginStatus } from "@/utils/enums/EnumsType.ts";
 
+const apiURL = import.meta.env.VITE_API_BASE_URL;
+
 interface ProtectedRouteProps {
   children: JSX.Element;
 }
@@ -22,7 +24,7 @@ export default function ProtectedRoute({
   useEffect(() => {
     (async () => {
       try {
-        const res = await fetch("http://localhost:8080/api/v1/account/me", {
+        const res = await fetch(`${apiURL}/account/me`, {
           credentials: "include",
         });
 
