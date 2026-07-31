@@ -450,7 +450,7 @@ CREATE TABLE `ship` (
 
 LOCK TABLES `ship` WRITE;
 /*!40000 ALTER TABLE `ship` DISABLE KEYS */;
-INSERT INTO `ship` VALUES (1,'Free Shipping','F','7 - 10 Days',0.00,1,'2025-09-03 03:01:38','system',NULL,NULL),(2,'Regular Shipping','R','4 - 7 Days',7.50,1,'2025-09-03 03:01:38','system',NULL,NULL),(3,'Express Shipping','E','2 - 3 Days',22.50,1,'2025-09-03 03:01:38','system',NULL,NULL),(4,'Instant Delivery','I','2 - 3 Days',25.50,1,'2025-09-03 03:01:38','system',NULL,NULL);
+INSERT INTO `ship` VALUES (1,'Free Shipping','F','7 - 10 Business Days',0.00,1,'2025-09-03 03:01:38','system',NULL,NULL),(2,'Standard Shipping','S','4 - 6 Business Days',3.99,1,'2025-09-03 03:01:38','system',NULL,NULL),(3,'Express Shipping','E','2 - 3 Business Days',6.99,1,'2025-09-03 03:01:38','system',NULL,NULL),(4,'Instant Delivery','I','Same Day Delivery',9.99,1,'2025-09-03 03:01:38','system',NULL,NULL);
 /*!40000 ALTER TABLE `ship` ENABLE KEYS */;
 UNLOCK TABLES;
 
