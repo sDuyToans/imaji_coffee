@@ -15,6 +15,7 @@ export default function ProductItemCard({
   const heroImgUrl =
     safeImages.find((img) => img.isMain)?.imageUrl ?? safeImages[0]?.imageUrl;
   const navigate = useNavigate();
+  const unavailableOnline = !isAvailableAtWeb;
 
   function getDiscountPercentage(product: ProductItem): number {
     if (product.oldPrice <= 0 || product.oldPrice <= product.price) {
@@ -45,7 +46,7 @@ export default function ProductItemCard({
             <Image
               alt={name}
               classNames={{
-                wrapper: "w-full h-[160px] lg:h-[300px]",
+                wrapper: `w-full h-[160px] lg:h-[300px] ${unavailableOnline ? "opacity-60 grayscale" : ""}`,
                 img: "w-full h-full object-cover rounded-none",
               }}
               radius={"lg"}
@@ -54,10 +55,19 @@ export default function ProductItemCard({
               width={"100%"}
             />
           ) : (
-            <div className="w-full h-[160px] lg:h-[300px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+            <div className={`w-full h-[160px] lg:h-[300px] bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${unavailableOnline ? "opacity-60 grayscale" : ""}`}>
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 No image available
               </span>
+            </div>
+          )}
+          {unavailableOnline && quantity > 0 && (
+            <div
+              className={
+                "uppercase bg-gray-600 text-white px-3 py-1.5 flex items-center justify-center absolute top-2 left-2 z-10 text-xs"
+              }
+            >
+              <span>Not Available on Web</span>
             </div>
           )}
           {quantity <= 0 && (
