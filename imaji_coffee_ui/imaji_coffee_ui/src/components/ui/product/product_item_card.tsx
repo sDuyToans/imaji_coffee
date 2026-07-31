@@ -61,33 +61,35 @@ export default function ProductItemCard({
               </span>
             </div>
           )}
-          {unavailableOnline && quantity > 0 && (
-            <div
-              className={
-                "uppercase bg-gray-600 text-white px-3 py-1.5 flex items-center justify-center absolute top-2 left-2 z-10 text-xs"
-              }
-            >
-              <span>Not Available on Web</span>
-            </div>
-          )}
-          {quantity <= 0 && (
-            <div
-              className={
-                "uppercase bg-black text-white w-[192px] h-[52px]  flex items-center justify-center absolute top-0 left-0 z-10"
-              }
-            >
-              <span>out of stock</span>
-            </div>
-          )}
-          {salePercentage > 0 && quantity > 0 && (
-            <div
-              className={
-                "uppercase bg-[#F14C35] text-white w-[59px] h-[36px] lg:w-[91px] lg:h-[52px] flex items-center justify-center absolute top-0 left-0 z-10"
-              }
-            >
-              <span>sale</span>
-            </div>
-          )}
+          <div className="absolute top-2 left-2 z-10 flex flex-col gap-2">
+            {unavailableOnline && quantity > 0 && (
+              <div
+                className={
+                  "uppercase bg-gray-600 text-white px-3 py-1.5 flex items-center justify-center text-xs"
+                }
+              >
+                <span>Not Available on Web</span>
+              </div>
+            )}
+            {quantity <= 0 && (
+              <div
+                className={
+                  "uppercase bg-black text-white px-3 py-1.5 flex items-center justify-center text-xs"
+                }
+              >
+                <span>out of stock</span>
+              </div>
+            )}
+            {salePercentage > 0 && quantity > 0 && (
+              <div
+                className={
+                  "uppercase bg-[#F14C35] text-white w-[59px] h-[36px] lg:w-[91px] lg:h-[52px] flex items-center justify-center"
+                }
+              >
+                <span>sale</span>
+              </div>
+            )}
+          </div>
         </CardBody>
         <CardFooter
           className={
