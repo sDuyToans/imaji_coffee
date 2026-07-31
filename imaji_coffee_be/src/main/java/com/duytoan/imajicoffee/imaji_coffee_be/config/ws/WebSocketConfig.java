@@ -1,6 +1,7 @@
 package com.duytoan.imajicoffee.imaji_coffee_be.config.ws;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.messaging.simp.config.MessageBrokerRegistry;
 import org.springframework.web.socket.config.annotation.EnableWebSocketMessageBroker;
 import org.springframework.web.socket.config.annotation.StompEndpointRegistry;
@@ -10,6 +11,9 @@ import com.duytoan.imajicoffee.imaji_coffee_be.utils.ChatStompAuthChannelInterce
 import com.duytoan.imajicoffee.imaji_coffee_be.utils.UserHandshakeHandler;
 import org.springframework.messaging.simp.config.ChannelRegistration;
 import lombok.RequiredArgsConstructor;
+
+import java.util.Arrays;
+import java.util.List;
 
 /**
  * Web Socket Configuration for 1v1 Customer-Admin Chat
@@ -28,9 +32,23 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
+    @Value("${imajicoffee.cors.allowed-origins:http://localhost:5173,http://localhost:3000}")
+    private String allowedOrigins;
+
     private final JwtCookieHandshakeInterceptor jwtCookieHandshakeInterceptor;
     private final ChatStompAuthChannelInterceptor chatStompAuthChannelInterceptor;
     private final UserHandshakeHandler userHandshakeHandler;
+
+    private String[] parseAllowedOrigins() {
+        List<String> origins = Arrays.stream(allowedOrigins.split(","))
+                .map(String::trim)
+                .filter(origin -> !origin.isEmpty())
+                .toList();
+        if (origins.isEmpty()) {
+            return new String[]{"http://localhost:5173", "http://localhost:3000"};
+        }
+        return origins.toArray(new String[0]);
+    }
 
     /**
      * Configure the message broker for handling subscriptions and broadcasts.
@@ -70,10 +88,10 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
-        registry.addEndpoint("/api/v1")
+        registry.addEndpoint("/api/v1/ws")
                 .addInterceptors(jwtCookieHandshakeInterceptor)
                 .setHandshakeHandler(userHandshakeHandler)
-                .setAllowedOrigins("http://localhost:5173", "http://localhost:3000") // Frontend origins
+                .setAllowedOrigins(parseAllowedOrigins())
                 .withSockJS()
                 .setStreamBytesLimit(512 * 1024) // 512KB per stream
                 .setHttpMessageCacheSize(1000)

@@ -22,8 +22,9 @@ import {
   useSendConversationMessageMutation,
 } from "@/api/chat/chatApi.ts";
 
-const CHAT_API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080/api/v1";
+const CHAT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  ? `${import.meta.env.VITE_API_BASE_URL}/ws`
+  : "http://localhost:8080/api/v1/ws";
 const WEBSOCKET_RECONNECT_DELAY = 5000;
 
 type RenderableMessage = ChatMessageDto & {
