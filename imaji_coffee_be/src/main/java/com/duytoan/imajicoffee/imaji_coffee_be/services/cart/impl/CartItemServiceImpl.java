@@ -54,6 +54,10 @@ public class CartItemServiceImpl implements ICartItemService {
         Product product = productRepository.findById(request.productId())
                 .orElseThrow(() -> new ResourceNotFoundException("Product", "ProductId", request.productId().toString()));
 
+        if (Boolean.FALSE.equals(product.getIsAvailableAtWeb())) {
+            throw new IllegalArgumentException("Product is unavailable: " + product.getName());
+        }
+
         // If cart item quantity is greater than product quantity -> throw exception
         if (product.getQuantity() < request.quantity()) {
             throw new IllegalArgumentException("Requested quantity exceeds available stock for product: " + product.getName());
@@ -93,6 +97,15 @@ public class CartItemServiceImpl implements ICartItemService {
     public CartItemResponseDto updateItem(Long userId, Long cartItemId, int quantity) {
         CartItem cartItem = cartItemRepository.findByIdAndCart_User_UserId(cartItemId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Cart", "CartItemId", cartItemId.toString()));
+
+        Product product = cartItem.getProduct();
+        if (Boolean.FALSE.equals(product.getIsAvailableAtWeb())) {
+            throw new IllegalArgumentException("Product is unavailable: " + product.getName());
+        }
+        if (product.getQuantity() < quantity) {
+            throw new IllegalArgumentException("Requested quantity exceeds available stock for product: " + product.getName());
+        }
+
         cartItem.setQuantity(quantity);
         cartItemRepository.save(cartItem);
 
