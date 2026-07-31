@@ -1,6 +1,6 @@
 import { ReactElement } from "react";
 import { GoArrowLeft } from "react-icons/go";
-import { Link } from "@heroui/link";
+import { useNavigate } from "react-router-dom";
 
 import PrimaryButton from "@/components/ui/button/primary_button.tsx";
 // import { CartItem, selectCartItem } from "@/features/cart/cartSlice.ts";
@@ -16,6 +16,7 @@ export default function CartLeft({
 }): ReactElement {
   const { data } = useGetCartQuery();
   const { setIsOpenCart } = useCart();
+  const navigate = useNavigate();
   const items = data?.cartItems ?? [];
 
   return (
@@ -47,10 +48,14 @@ export default function CartLeft({
           <h5 className={"text-2xl lg:text-5xl"}>
             There is nothing in the cart, please order and come back
           </h5>
-          <PrimaryButton type={"button"}>
-            <Link href={"/menu"} onPress={() => setIsOpenCart(false)}>
-              Go to Menu
-            </Link>
+          <PrimaryButton
+            type={"button"}
+            onPress={() => {
+              setIsOpenCart(false);
+              navigate("/menu");
+            }}
+          >
+            Go to Menu
           </PrimaryButton>
         </div>
       )}

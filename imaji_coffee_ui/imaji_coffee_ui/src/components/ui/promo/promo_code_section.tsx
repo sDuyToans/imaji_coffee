@@ -116,9 +116,14 @@ export default function PromoCodeSection(): ReactElement {
         </PrimaryButton>
       </div>
 
-      {appliedCode && appliedDiscount !== 0 && (
-        <Chip color={"warning"} variant={"flat"} onClose={handleClear}>
-          {appliedCode} · -${appliedDiscount}
+      {appliedCode && (
+        <Chip
+          color={appliedDiscount !== 0 ? "warning" : "default"}
+          variant={"flat"}
+          onClose={handleClear}
+        >
+          {appliedCode}
+          {appliedDiscount !== 0 && ` · -$${appliedDiscount}`}
         </Chip>
       )}
 
