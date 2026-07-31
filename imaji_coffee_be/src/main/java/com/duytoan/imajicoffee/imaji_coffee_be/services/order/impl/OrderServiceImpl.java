@@ -199,6 +199,7 @@ public class OrderServiceImpl implements IOrderService {
         return orderRepository.findByUserId(userId).stream()
                 .filter(order -> status == null || status.isBlank()
                         || order.getStatus().name().equalsIgnoreCase(status))
+                .sorted(Comparator.comparing(Order::getCreatedAt).reversed())
                 .map(this::mapToAccountOrderDetail)
                 .toList();
     }

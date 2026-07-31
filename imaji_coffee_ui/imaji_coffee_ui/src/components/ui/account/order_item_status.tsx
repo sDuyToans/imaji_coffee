@@ -122,6 +122,7 @@ export default function OrderItemStatus({
 }): ReactElement {
   const { data, isLoading, isError, refetch } = useGetAccountOrdersQuery(
     status === "All" ? undefined : { status },
+    { pollingInterval: 5000 },
   );
   const [cancelOrder, { isLoading: isCancelling }] = useCancelOrderMutation();
   const [cancellingId, setCancellingId] = useState<number | null>(null);
@@ -179,12 +180,13 @@ export default function OrderItemStatus({
   return (
     <>
       <div className={"hidden md:flex flex-col gap-5"}>
-        <div className="flex gap-[48px] text-xl border-b border-neutral-400 pb-6">
-          <div className="flex-4/12 text-center">Status</div>
+        <div className="flex gap-5 text-xl border-b border-neutral-400 pb-6">
+          <div className="flex-3/12 text-center">Status</div>
           <div className="flex-2/12 text-center">Date</div>
           <div className="flex-2/12 text-center">OrderId</div>
-          <div className="flex-2/12 text-center">Items</div>
+          <div className="flex-1/12 text-center">Items</div>
           <div className="flex-2/12 text-center">Amount</div>
+          <div className="flex-2/12 text-center">Payment / Action</div>
         </div>
         {filteredOrders.map(
           (o: AccountOrderResponseDto): ReactElement => (
@@ -192,7 +194,7 @@ export default function OrderItemStatus({
               key={o.orderId}
               className={"flex gap-5 border-b border-[#E3E3E3] pb-5"}
             >
-              <div className={"flex-4/12 text-center flex items-center"}>
+              <div className={"flex-3/12 text-center flex items-center justify-center"}>
                 {renderStatus(o.status)}
               </div>
               <p className={"flex-2/12 text-center text-lg lg:text-xl"}>
@@ -207,7 +209,7 @@ export default function OrderItemStatus({
                   #{o.orderId}
                 </Link>
               </p>
-              <p className={"flex-2/12 text-center text-lg lg:text-xl"}>
+              <p className={"flex-1/12 text-center text-lg lg:text-xl"}>
                 {o.items}
               </p>
               <p className={"flex-2/12 text-center text-lg lg:text-xl"}>
