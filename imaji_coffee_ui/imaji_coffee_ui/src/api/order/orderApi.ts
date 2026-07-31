@@ -41,6 +41,13 @@ export const orderApi = apiSlice.injectEndpoints({
       }),
       invalidatesTags: ["Orders"],
     }),
+    confirmStripePayment: builder.mutation<OrderResponse, number>({
+      query: (orderId) => ({
+        url: `/order/${orderId}/confirm-stripe-payment`,
+        method: "POST",
+      }),
+      invalidatesTags: ["Orders"],
+    }),
   }),
 });
 
@@ -50,4 +57,5 @@ export const {
   useUpdateOrderStatusMutation,
   useCreateOrderForPayPalMutation,
   useCancelOrderMutation,
+  useConfirmStripePaymentMutation,
 } = orderApi;

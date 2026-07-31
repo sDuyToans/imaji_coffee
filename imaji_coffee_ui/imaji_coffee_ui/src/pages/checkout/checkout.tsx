@@ -19,7 +19,10 @@ import Shipping from "@/components/ui/checkout/shipping.tsx";
 import Payment from "@/components/ui/checkout/payment.tsx";
 import { checkoutSchema } from "@/libs/yup/checkout_schema.ts";
 import { ElementErrors, OrderItemRequest, OrderRequest } from "@/types";
-import { useCreateOrderMutation } from "@/api/order/orderApi.ts";
+import {
+  useConfirmStripePaymentMutation,
+  useCreateOrderMutation,
+} from "@/api/order/orderApi.ts";
 import { useCart } from "@/context/cart.tsx";
 import {
   useClearCartMutation,
@@ -76,6 +79,7 @@ export default function Checkout({
 
   const promoCode = cart?.promo?.code ?? null;
   const [createOrder] = useCreateOrderMutation();
+  const [confirmStripePayment] = useConfirmStripePaymentMutation();
   const [clearCart] = useClearCartMutation();
   const [clearPromo] = useClearPromoMutation();
   const { setIsOpenCart } = useCart();
@@ -255,6 +259,11 @@ export default function Checkout({
       toast.error(error.message || "Payment failed. Please try again.");
     } else if (paymentIntent && paymentIntent.status === "succeeded") {
       toast.success("Payment submitted. We will confirm it shortly.");
+      try {
+        await confirmStripePayment(orderId).unwrap();
+      } catch {
+        // Webhook will eventually update the order; continue to confirmation page.
+      }
       clearCart();
       clearPromo();
       await clearShip().unwrap();

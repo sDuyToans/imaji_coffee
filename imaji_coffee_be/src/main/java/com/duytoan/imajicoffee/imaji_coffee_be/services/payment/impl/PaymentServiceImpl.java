@@ -61,6 +61,18 @@ public class PaymentServiceImpl implements IPaymentService {
     }
 
     @Override
+    public PaymentIntent retrievePaymentIntent(String paymentIntentId) {
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            return null;
+        }
+        try {
+            return PaymentIntent.retrieve(paymentIntentId);
+        } catch (StripeException e) {
+            throw new PaymentProcessingException("Failed to retrieve payment intent", e);
+        }
+    }
+
+    @Override
     public void validateCardPaymentConfiguration() {
         if (stripeSecretKey == null || stripeSecretKey.isBlank() || "dummy".equalsIgnoreCase(stripeSecretKey)) {
             throw new PaymentProcessingException("Card payment is not configured. Please set STRIPE_SECRET_KEY.");

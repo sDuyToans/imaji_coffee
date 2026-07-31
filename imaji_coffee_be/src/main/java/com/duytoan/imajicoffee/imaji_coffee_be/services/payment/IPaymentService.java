@@ -2,6 +2,7 @@ package com.duytoan.imajicoffee.imaji_coffee_be.services.payment;
 
 import com.duytoan.imajicoffee.imaji_coffee_be.dto.payment.PaymentIntentRequestDto;
 import com.duytoan.imajicoffee.imaji_coffee_be.dto.payment.PaymentIntentResponseDto;
+import com.stripe.model.PaymentIntent;
 
 /**
  * Payment interface contains method's name and parameters
@@ -17,6 +18,8 @@ public interface IPaymentService {
     PaymentIntentResponseDto createPaymentIntent(PaymentIntentRequestDto paymentIntentRequestDto);
 
     String getClientSecret(String paymentIntentId);
+
+    PaymentIntent retrievePaymentIntent(String paymentIntentId);
 
     void validateCardPaymentConfiguration();
 }

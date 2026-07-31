@@ -271,6 +271,55 @@ public class OrderServiceImpl implements IOrderService {
 
     @Override
     @Transactional
+    public OrderResponseDto confirmStripePayment(Long orderId, Long requesterUserId, boolean isAdmin) {
+        Order order = loadAuthorizedOrder(orderId, requesterUserId, isAdmin);
+
+        if (order.getPaymentStatus() == PaymentStatus.PAID
+                || order.getStatus() == OrderStatus.PAID
+                || order.getStatus() == OrderStatus.PROCESSING
+                || order.getStatus() == OrderStatus.SHIPPED
+                || order.getStatus() == OrderStatus.DELIVERED) {
+            return mapToOrderResponseDto(order, null);
+        }
+
+        if (!"card".equalsIgnoreCase(order.getPaymentMethod())) {
+            throw new IllegalArgumentException("Stripe confirmation is only available for card payments");
+        }
+
+        String paymentIntentId = order.getPaymentIntentId();
+        if (paymentIntentId == null || paymentIntentId.isBlank()) {
+            throw new IllegalStateException("No payment intent associated with this order");
+        }
+
+        var paymentIntent = paymentService.retrievePaymentIntent(paymentIntentId);
+        if (paymentIntent == null) {
+            throw new IllegalStateException("Unable to verify payment with Stripe");
+        }
+
+        if (!"succeeded".equalsIgnoreCase(paymentIntent.getStatus())) {
+            throw new IllegalStateException("Payment has not succeeded yet. Current status: " + paymentIntent.getStatus());
+        }
+
+        Order lockedOrder = orderRepository.findByOrderIdForUpdate(order.getOrderId())
+                .orElseThrow(() -> new ResourceNotFoundException("Order", "orderId", order.getOrderId().toString()));
+
+        if (lockedOrder.getStatus() == OrderStatus.PAID) {
+            return mapToOrderResponseDto(lockedOrder, null);
+        }
+
+        validateTransition(lockedOrder.getStatus(), OrderStatus.PAID);
+        lockedOrder.setStatus(OrderStatus.PAID);
+        lockedOrder.setPaymentStatus(PaymentStatus.PAID);
+        lockedOrder.setExternalPaymentId(paymentIntent.getLatestCharge());
+        lockedOrder.setUpdatedBy("USER_CONFIRM");
+        lockedOrder.setUpdatedAt(Instant.now());
+        Order savedOrder = orderRepository.save(lockedOrder);
+        sendConfirmationEmailIfNeeded(savedOrder);
+        return mapToOrderResponseDto(savedOrder, null);
+    }
+
+    @Override
+    @Transactional
     public void handleStripeWebhookEvent(String eventId, String eventType, String paymentIntentId, String externalPaymentId) {
         if (isWebhookDuplicate("STRIPE", eventId)) {
             return;

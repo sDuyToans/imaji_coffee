@@ -57,6 +57,8 @@ public interface IOrderService {
 
     OrderResponseDto recordCodPaymentCollection(Long orderId, String updatedBy);
 
+    OrderResponseDto confirmStripePayment(Long orderId, Long requesterUserId, boolean isAdmin);
+
     void handleStripeWebhookEvent(
             String eventId,
             String eventType,

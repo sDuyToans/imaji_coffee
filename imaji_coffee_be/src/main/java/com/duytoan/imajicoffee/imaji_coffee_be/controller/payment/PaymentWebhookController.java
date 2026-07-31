@@ -35,6 +35,7 @@ public class PaymentWebhookController {
     ) {
         try {
             Event event = Webhook.constructEvent(payload, signatureHeader, stripeWebhookSecret);
+            log.info("Received Stripe webhook: id={}, type={}", event.getId(), event.getType());
             String paymentIntentId = null;
             String externalPaymentId = null;
 
@@ -48,13 +49,16 @@ public class PaymentWebhookController {
                 Charge charge = (Charge) event.getDataObjectDeserializer().getObject().orElseThrow();
                 paymentIntentId = charge.getPaymentIntent();
                 externalPaymentId = charge.getId();
+            } else {
+                log.warn("Unhandled Stripe webhook type: {}", event.getType());
             }
 
             orderService.handleStripeWebhookEvent(event.getId(), event.getType(), paymentIntentId, externalPaymentId);
+            log.info("Processed Stripe webhook: id={}", event.getId());
             return ResponseEntity.ok("ok");
         } catch (Exception e) {
-            log.error("Stripe webhook failed", e);
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("invalid webhook");
+            log.error("Stripe webhook failed: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("invalid webhook: " + e.getMessage());
         }
     }
 

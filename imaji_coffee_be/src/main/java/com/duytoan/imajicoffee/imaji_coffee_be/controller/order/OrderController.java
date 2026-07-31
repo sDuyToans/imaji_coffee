@@ -113,6 +113,19 @@ public class OrderController {
         return ResponseEntity.ok(orderResponseDto);
     }
 
+    @PostMapping("/{orderId}/confirm-stripe-payment")
+    public ResponseEntity<OrderResponseDto> confirmStripePayment(
+            @PathVariable Long orderId,
+            Authentication authentication
+    ) {
+        OrderResponseDto orderResponseDto = orderService.confirmStripePayment(
+                orderId,
+                currentUserId(authentication),
+                hasAdminRole(authentication)
+        );
+        return ResponseEntity.ok(orderResponseDto);
+    }
+
     private Long currentUserId(Authentication authentication) {
         Object principal = authentication.getPrincipal();
         if (principal instanceof Long userId) {
