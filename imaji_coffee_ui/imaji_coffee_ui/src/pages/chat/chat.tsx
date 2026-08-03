@@ -361,7 +361,6 @@ function ChatScreen(): ReactElement {
     const client = new Client({
       webSocketFactory: () => socket as unknown as WebSocket,
       reconnectDelay: WEBSOCKET_RECONNECT_DELAY,
-      connectHeaders: getConnectHeaders(),
       debug: () => undefined,
       onConnect: () => {
         setIsConnected(true);
@@ -1382,18 +1381,6 @@ function extractErrorMessage(error: unknown, fallback: string): string {
   }
 
   return fallback;
-}
-
-function getConnectHeaders(): Record<string, string> {
-  const token = localStorage.getItem("token");
-
-  if (!token) {
-    return {};
-  }
-
-  return {
-    Authorization: `Bearer ${token}`,
-  };
 }
 
 function formatTime(timestamp: string): string {

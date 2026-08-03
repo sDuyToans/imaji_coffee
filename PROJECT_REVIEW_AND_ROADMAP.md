@@ -1,6 +1,6 @@
 # Imaji Coffee — Project Review and Roadmap
 
-This document records the current project assessment and the recommended implementation order. It is intended to be read before starting the next development phase.
+This document records the current project assessment and recommended next steps. It supersedes the review dated 2026-07-23: that review's Priority 0 items (authorization, checkout price integrity, webhook idempotency, WebSocket auth, CORS) have since been implemented and are verified fixed below. This update is based on a fresh read of the code on 2026-08-02, with file:line evidence for every claim.
 
 No application code is changed by this document.
 
@@ -8,243 +8,114 @@ No application code is changed by this document.
 
 Imaji Coffee is a full-stack coffee e-commerce application with:
 
-- React, TypeScript, Vite, HeroUI, Tailwind CSS, and Redux Toolkit frontend
-- Spring Boot, Java 17, Spring Data JPA, and Spring Security backend
+- React, TypeScript, Vite, HeroUI, Tailwind CSS, Redux Toolkit (RTK Query) frontend
+- Spring Boot, Java 17, Spring Data JPA, Spring Security backend
 - MySQL database
 - Product catalog, search, categories, promotions, cart, shipping, and checkout
-- Stripe and PayPal-related payment flows
-- JWT authentication, role-based access, and Google OAuth
-- Customer accounts, addresses, order history, news, events, spaces, and FAQs
-- Customer-admin real-time chat using WebSockets/STOMP
-- Caffeine caching, email support, Actuator, Docker, and integration tests
+- Stripe and PayPal payment flows
+- JWT authentication (cookie-based), role-based access, Google OAuth
+- Customer accounts, addresses, order history, news, events, spaces, FAQs
+- Customer-admin real-time chat over WebSockets/STOMP
+- Caffeine caching, email support, Actuator, Docker, integration tests
 
-The project has a solid feature foundation. Chat and FAQ functionality are currently among the most active areas. Both the backend and frontend contain ongoing uncommitted work, so behavior should be verified before starting large new features.
+The security and checkout foundation is now in materially better shape than the previous review found it. Remaining work is concentrated in operational hygiene (migrations, repo cleanliness), pagination completeness, and frontend consistency/test coverage.
 
-## 2. Highest-priority improvements
+## 2. Resolved since the last review
 
-### Priority 0 — Security and authorization
+These items were flagged Priority 0 previously and are now fixed, with evidence:
 
-This work should happen before expanding the feature set.
+- **CORS is environment-driven**, not hardcoded to localhost — `imajicoffee.cors.allowed-origins` property, applied consistently in `SecurityConfig.java`, `CorsConfig.java`, and `WebSocketConfig.java`.
+- **Endpoint authorization is enforced**: `/api/v1/admin/**` requires `ROLE_ADMIN` (`SecurityConfig.java:55-56`); ownership is checked in the service layer for orders (`OrderServiceImpl.loadAuthorizedOrder`, lines 371-387), addresses (`AddressServiceImpl`, lines 126, 155), chat (`ChatRestController`, multiple endpoints), and carts (userId always derives from the auth token, never the request body).
+- **Checkout price integrity**: totals are recalculated server-side from persisted `OrderItem` prices in `OrderServiceImpl.calculatePricing` (lines 389-424); the Stripe PaymentIntent amount uses that server total, not client input.
+- **Stripe webhook is authoritative and idempotent**: signature is verified via `Webhook.constructEvent` (`PaymentWebhookController.java:37`), and `isWebhookDuplicate`/`markWebhookProcessed` (`OrderServiceImpl.java:324-369`) prevent double-processing.
+- **WebSocket auth is active**: `ChatStompAuthChannelInterceptor` binds a JWT-derived principal on CONNECT, and both `ChatController.sendMessage` and `ChatServiceImpl.saveMessage` verify the sender against the authenticated principal.
+- **Frontend API base URLs are env-driven** everywhere via `VITE_API_BASE_URL` — no more scattered hardcoded `localhost` values in the API layer.
+- **`.env.example` exists** and is secret-free; `.env` is gitignored and actually untracked.
+- Automated tests now cover ownership denial, price-recalculation-from-DB, and webhook-duplicate handling (`OrderServiceImplTest`, `ConcurrentPurchaseIntegrationTest`).
 
-- Review every endpoint and require authentication by default.
-- Ensure customers can only read and modify their own carts, orders, addresses, and conversations.
-- Ensure only authorized admins can view admin queues, reassign conversations, manage content, and change order states.
-- Protect chat conversation creation, conversation lists, message history, reassignment, and closing operations.
-- Prevent users from manually setting sensitive order statuses such as `PAID`, `REFUNDED`, or `CANCELLED`.
-- Add authorization tests for customer, admin, guest, and unauthenticated requests.
-- Use the configured CORS environment value instead of a hardcoded localhost origin.
-- Remove default passwords, JWT secrets, payment secrets, and OAuth placeholders from deployment configuration.
-- Keep database runtime files, private keys, certificates, and local database data outside source control.
+The old `WebSocketSecurityConfig.java` (fully commented-out, dead since it was written) has been deleted from the working tree; it did nothing at runtime, so its removal is not a regression — real WebSocket authorization now lives in the interceptor described above.
 
-### Priority 0 — Checkout and payment correctness
+## 3. Open issues, by priority
 
-The server must be the source of truth for order pricing.
+### Priority 1 — Repo and secret hygiene
 
-- Accept product IDs and quantities from the client, not a trusted final total.
-- Recalculate product prices from the database.
-- Validate product availability and stock on the backend.
-- Recalculate promotions, tax, shipping, discounts, and the final total server-side.
-- Create Stripe payment intents using the server-calculated amount.
-- Treat the Stripe webhook as the authoritative payment confirmation.
-- Make webhook processing idempotent so repeated events do not corrupt an order.
-- Define behavior for payment failure, cancellation, expiration, retry, refund, and partial fulfillment.
-- Decide whether stock is reserved at order creation or deducted only after successful payment.
-- Add tests for price tampering, duplicate webhooks, insufficient stock, and payment retries.
+**`dist/` is committed despite being gitignored.**
+114 files under `imaji_coffee_ui/imaji_coffee_ui/dist/` are tracked by git (confirmed via `git ls-files`), even though `.gitignore` lists `dist` on line 14. The ignore rule was added after the folder was already committed, so it keeps being silently re-tracked/stale in history.
+- *Why it matters*: every frontend build now diffs a large committed build artifact, bloats the repo, and can go stale relative to source, misleading anyone who inspects it.
+- *Solution*: `git rm -r --cached imaji_coffee_ui/imaji_coffee_ui/dist` and commit the removal; verify the deploy pipeline (Vercel) builds `dist` itself rather than depending on the committed copy.
 
-### Priority 1 — Configuration and project hygiene
+**A real-looking JWT secret is hardcoded in a tracked file.**
+`imaji_coffee_be/docker-compose.yml:43` sets `JWT_SECRET: "0123456789abcdef0123456789abcdef"` directly in a tracked compose file (Stripe/Google values alongside it are clearly placeholders like `"change_me_stripe_secret"`, but the JWT value is a usable 32-character secret).
+- *Why it matters*: anyone who clones the repo and runs `docker-compose up` gets a real, working (if weak) JWT signing key baked into source control — a low-effort target if this compose file is ever reused past local dev.
+- *Solution*: replace it with an obvious placeholder (`change_me_jwt_secret`) consistent with the other entries, and require `JWT_SECRET` to be supplied via `.env`/environment at compose time with no committed default.
 
-- Standardize frontend API configuration across all API modules.
-- Choose one authentication strategy, preferably secure HttpOnly cookies or a clearly documented alternative.
-- Remove hardcoded localhost URLs and values such as `userId: 1`.
-- Align frontend documentation with the actual backend port and API base path.
-- Avoid committing generated `dist` output unless deployment specifically requires it.
-- Review dependency versions and remove dependencies that are not needed in production.
-- Separate local, test, staging, and production configuration.
-- Add a safe example environment file such as `.env.example` without real secrets.
+**Auth token reads from `localStorage` are dead code.**
+`checkout_method/paypal_checkout.tsx:49` and `pages/chat/chat.tsx:1388` read a token from `localStorage`, but nothing in the app ever writes one there (auth is cookie-based via `credentials: "include"`). These reads always resolve to `null`.
+- *Why it matters*: it's a leftover from a prior auth design; it doesn't break anything today, but it's misleading to future readers who may assume it's live and build on it, or waste time debugging why "the token" is always null.
+- *Solution*: delete both reads and whatever branches depend on them.
 
-## 3. Chat system roadmap
+### Priority 2 — Backend data layer
 
-The chat system is a valuable differentiating feature, but needs operational hardening.
+**No schema migration tool.**
+Schema changes rely on manually-ordered raw SQL files (`init.sql`, `script.sql`, `src/main/resources/sql/*/schema.sql`, `insert.sql`, `update.sql`, `promo.sql`) with no Flyway or Liquibase.
+- *Why it matters*: there's no repeatable, versioned way to evolve the schema across environments, no record of what's been applied where, and no safe rollback path — a real risk once there's more than one developer or a production deploy history.
+- *Solution*: introduce Flyway (simplest fit for a Spring Boot + MySQL stack), convert the existing SQL files into versioned migrations (`V1__init.sql`, `V2__...`), and let it manage schema state going forward.
 
-### Reliability and security
+**Several list endpoints are still unbounded.**
+Pagination was added for chat messages (`ChatRestController.getMessagesPage`) and product search (`ProductController.search`), but `GET /api/v1/products` with no query params (`ProductController.java:47`), `getProductBySize`, `getRelatedProducts`, and `OrderServiceImpl.getAccountOrders` (lines 198-205) all still return full unbounded `List`s.
+- *Why it matters*: fine at current data volume, but these will degrade linearly as the product catalog and per-customer order history grow, with no caps in place today.
+- *Solution*: switch these to `Pageable`-based endpoints for consistency with the already-paginated ones; low effort since the pattern already exists in the codebase to copy from.
 
-- Enforce conversation ownership and admin permissions in the service layer.
-- Add message length validation, rate limiting, and abuse protection.
-- Add pagination for conversation history.
-- Store read state and unread counts reliably on the backend.
-- Handle WebSocket reconnects, duplicate messages, and offline delivery.
-- Add server-side authorization for subscriptions and destinations.
-- Replace most three-second polling with event-driven WebSocket updates.
-- Add conversation audit history for assignment, reassignment, closure, and status changes.
+### Priority 2 — Frontend consistency
 
-### Admin workflow
+**API modules are inconsistent about sending credentials.**
+Most RTK Query API slices share `apiSlice`/`apiCartSlice`, which set `credentials: "include"`. But `productsApi.ts`, `paymentApi.ts`, `shipMethodsApi.ts`, `spacesApi.ts`, `newsApi.ts`, `promosApi.ts`, and `eventsApi.ts` each instantiate their own `createApi`/`fetchBaseQuery` without `credentials: "include"`.
+- *Why it matters*: any of these modules that later needs an authenticated call will silently fail to send the auth cookie, producing confusing 401s that look unrelated to the actual cause. It also means there's no single place to change auth/error-handling behavior for all API calls.
+- *Solution*: consolidate all modules onto one shared base query (or a small factory that wraps `fetchBaseQuery` with the standard `credentials`/base URL/error handling), rather than each file re-declaring `createApi`.
 
-- Create an admin dashboard showing waiting, open, and closed conversations.
-- Add explicit conversation acceptance and assignment states.
-- Show queue position and estimated waiting time to customers.
-- Add internal admin-only notes and conversation tags.
-- Track first response time, resolution time, workload per admin, and customer satisfaction.
-- Add escalation and handoff between admins.
+**No frontend automated tests.**
+No test runner (`vitest`/`jest`/`playwright`/`cypress`) is configured, and no `*.test.*`/`*.spec.*` files exist anywhere in the project.
+- *Why it matters*: checkout, cart, and auth flows have no regression safety net on the frontend; the backend has coverage for the equivalent logic, but nothing catches a UI regression before a user does.
+- *Solution*: add Vitest + React Testing Library for component/unit coverage, and at minimum a Playwright smoke test for login → add to cart → checkout, since that's the highest-value path to protect.
 
-### Customer experience
+**Loading/error/empty states are ad hoc per page.**
+Only 6 of 16 page files reference `isLoading` at all, and each handles it with its own inline `Spinner`/error branch; there's no shared component.
+- *Why it matters*: inconsistent UX (some pages show nothing while loading, others show a spinner, error handling varies) and duplicated logic that has to be fixed N times instead of once.
+- *Solution*: extract shared `LoadingState`/`ErrorState`/`EmptyState` components and adopt them incrementally as pages are touched — not worth a dedicated sweep on its own.
 
-- Show assignment and status notifications.
-- Add typing indicators and online/offline status.
-- Add browser notifications and optional sound alerts.
-- Support message search and conversation history.
-- Add file/image attachments only after storage, validation, and security requirements are defined.
+**Minor: unused dependency.**
+`@types/react-slick` is listed in `package.json` with zero usage of `react-slick` anywhere in the source.
+- *Solution*: remove it; trivial cleanup, bundle it with any other dependency touch-up rather than doing it standalone.
 
-### AI support decision
+### Priority 3 — Chat system enhancements (still open, unchanged from prior review)
 
-The current AI support UI behaves like a local FAQ simulator. Decide between:
+The core chat authorization and message-ownership checks are now solid (see Section 2). What remains is product/operational maturity, not security:
 
-1. Keeping it as a static FAQ helper, or
-2. Building a backend-powered assistant connected to approved FAQ, product, shipping, and order-status data.
+- Rate limiting / abuse protection on message sending.
+- Reliable unread counts and read-state persistence.
+- Reconnect/offline delivery handling beyond the current interceptor-level auth.
+- An admin dashboard: queue view, explicit assignment/acceptance, reassignment, internal notes, response-time metrics.
+- Typing indicators, online/offline presence, browser notifications.
+- A decision on the AI support widget: keep it as a static FAQ helper, or build a real backend-connected assistant (if the latter, it needs its own auth, logging, rate limits, and prompt-injection defenses before shipping).
 
-If a real assistant is built, add authentication, privacy controls, logging, rate limits, prompt-injection defenses, and a clear escalation path to a human admin.
+### Priority 3 — Product ideas (unchanged, deferred until the above lands)
 
-## 4. Frontend improvements
+Reviews/ratings, favorites/wishlists, loyalty points, subscriptions, personalized recommendations, gift cards, bundles, local pickup slots — all reasonable directions once the operational items above are addressed, not before.
 
-- Create one shared API client with consistent base URL, credentials, token handling, error handling, and refresh behavior.
-- Add typed request and response models to every API module.
-- Centralize loading, empty, error, and retry states.
-- Remove commented-out legacy cart state once the backend cart is confirmed stable.
-- Add reusable form validation and accessible error messages.
-- Verify mobile checkout, navigation, chat, and payment behavior.
-- Improve accessibility: keyboard navigation, focus management, labels, color contrast, and screen-reader feedback.
-- Add analytics for product views, cart additions, checkout drop-off, successful purchases, and support requests.
-- Add frontend unit tests and browser-level checkout tests.
+## 4. Testing gaps summary
 
-## 5. Backend and data improvements
+| Area | Backend | Frontend |
+|---|---|---|
+| Authorization (ownership, admin-only) | Covered (`OrderServiceImplTest`) | None |
+| Checkout price integrity | Covered | None |
+| Webhook idempotency | Covered | N/A |
+| Concurrent stock/purchase | Covered (`ConcurrentPurchaseIntegrationTest`) | N/A |
+| Any UI flow (login, cart, checkout) | N/A | None — no test runner configured |
 
-- Add database indexes for conversations, messages, orders, and frequently searched products.
-- Verify foreign keys and deletion behavior across all related tables.
-- Use database migrations such as Flyway or Liquibase instead of relying on manually ordered SQL files.
-- Add consistent API error responses with stable error codes.
-- Add request correlation IDs and structured logging.
-- Add metrics for checkout failures, payment events, stock conflicts, chat latency, and API errors.
-- Add health checks for the database, payment integration, email service, and WebSocket layer.
-- Add pagination and sorting to all potentially large list endpoints.
-- Review transaction boundaries around order creation, stock changes, payment creation, and email sending.
-- Make email delivery asynchronous so checkout is not blocked by an email provider.
+The backend has meaningfully better coverage of the highest-risk logic than the frontend does. The frontend gap is now the bigger relative risk.
 
-## 6. Testing plan
+## 5. Recommended next milestone
 
-### Security tests
+**Repo hygiene and pagination pass, then frontend test foundation.**
 
-- Unauthenticated access to protected endpoints
-- Customer access to another customer's order
-- Customer access to another customer's conversation
-- Non-admin access to admin operations
-- Unauthorized WebSocket connection and subscription
-- CORS and cookie behavior in each environment
-
-### Commerce tests
-
-- Backend price recalculation
-- Promotion validity and expiration
-- Tax and shipping calculations
-- Stock limits and concurrent purchases
-- Duplicate checkout requests
-- Stripe webhook signature validation
-- Duplicate and out-of-order webhook events
-- Payment failure, cancellation, refund, and retry flows
-
-### Chat tests
-
-- Conversation creation and assignment
-- Admin reassignment
-- Closed conversation behavior
-- Message authorization
-- Message ordering and duplicate prevention
-- Reconnect and offline recovery
-- Pagination and unread counts
-
-### Frontend tests
-
-- Login and registration
-- Product filtering and pagination
-- Cart and promotion behavior
-- Checkout validation
-- Payment success and failure states
-- Order history and order access
-- Responsive navigation and support widget
-
-## 7. Recommended implementation phases
-
-### Phase 1 — Secure the foundation
-
-1. Inventory all endpoints and classify them as public, customer, admin, or system-only.
-2. Fix authorization and ownership checks.
-3. Protect payment, webhook, order, and chat operations.
-4. Remove hardcoded secrets and local-only configuration.
-5. Add authorization regression tests.
-
-### Phase 2 — Make checkout authoritative
-
-1. Recalculate orders on the backend.
-2. Validate stock, promotions, tax, and shipping.
-3. Make Stripe webhooks authoritative and idempotent.
-4. Define order and payment state transitions.
-5. Add end-to-end checkout tests.
-
-### Phase 3 — Stabilize operations
-
-1. Add database migrations and indexes.
-2. Improve logging, metrics, health checks, and error responses.
-3. Make email processing asynchronous.
-4. Add pagination and performance checks.
-5. Create a repeatable staging deployment.
-
-### Phase 4 — Complete the admin experience
-
-1. Build the admin dashboard.
-2. Add product, inventory, promotion, FAQ, news, and event management.
-3. Add chat queue management and support metrics.
-4. Add order fulfillment and refund workflows.
-
-### Phase 5 — Grow the customer product
-
-1. Product reviews and ratings
-2. Favorites and wishlists
-3. Better order tracking and notifications
-4. Loyalty points and referral rewards
-5. Coffee subscriptions and recurring orders
-6. Personalized product recommendations
-7. Coffee education, tastings, and community events
-
-## 8. Product ideas
-
-The most promising direction is to make Imaji Coffee more than a basic online store by combining commerce with community and support:
-
-- Coffee subscriptions with delivery preferences
-- Loyalty points, rewards, and birthday offers
-- Personalized recommendations based on taste preferences and purchase history
-- Brew guides and educational coffee content
-- Event registration and in-store tasting reservations
-- Gift cards and gift subscriptions
-- Bundles such as starter kits and seasonal collections
-- Local pickup and delivery time slots
-- Customer reviews with preparation and flavor tags
-- Human support connected directly to the customer's order and account context
-
-## 9. Definition of a reliable first release
-
-Before calling the project production-ready, verify that:
-
-- No customer can access another customer's data.
-- No client can manipulate the final order price or payment status.
-- Stripe webhook processing is signed, idempotent, and tested.
-- Stock cannot become negative during concurrent purchases.
-- Secrets and local database files are not committed or deployed accidentally.
-- Checkout works for success, failure, cancellation, retry, and timeout cases.
-- Admin actions are separated from customer actions.
-- Critical API and checkout flows have automated tests.
-- Production configuration is separate from local development configuration.
-- Monitoring can detect payment failures, stock conflicts, API errors, and chat outages.
-
-## 10. Suggested immediate milestone
-
-**Secure and validate checkout end-to-end.**
-
-This milestone should be completed before adding major new customer-facing features. It establishes a trustworthy core for inventory, orders, payments, and customer data, after which the admin dashboard and enhanced chat system can be developed safely.
+The dangerous class of bugs (auth bypass, price tampering, webhook replay) is already handled and tested. The next highest-leverage work is cheap and mechanical: stop tracking `dist/`, fix the hardcoded compose secret, remove the dead `localStorage` reads, and finish the pagination sweep — all Priority 1/2 items above, each small and independent. After that, invest in a minimal frontend test setup (Vitest + one Playwright checkout smoke test) before building new customer-facing features like the admin dashboard or loyalty program, so future changes to checkout/cart/auth have a regression net on both ends of the stack.

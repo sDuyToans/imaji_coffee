@@ -7,7 +7,6 @@ import {
 import { Spinner } from "@heroui/spinner";
 import { useForm } from "react-hook-form";
 import { yupResolver } from "@hookform/resolvers/yup";
-import { jwtDecode } from "jwt-decode";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -21,11 +20,7 @@ import {
 import { checkoutSchema } from "@/libs/yup/checkout_schema.ts";
 import { OrderItemRequest, OrderRequest } from "@/types";
 import { useCreateOrderForPayPalMutation } from "@/api/order/orderApi.ts";
-
-interface TokenPayload {
-  username?: string;
-  sub?: string;
-}
+import { useGetMeQuery } from "@/api/account/accountApi.ts";
 
 export default function PaypalCheckout(): React.ReactElement {
   return (
@@ -46,26 +41,21 @@ function PaymentContainer(): React.ReactElement {
   const checkoutAttemptKeyRef = useRef<string | null>(null);
   const { data: cart } = useGetCartQuery();
   const cartItems = cart?.cartItems ?? [];
-  const token = localStorage.getItem("token");
   const [createOrderForPayPal] = useCreateOrderForPayPalMutation();
   const [clearCart] = useClearCartMutation();
   const [clearPromo] = useClearPromoMutation();
   const [clearShip] = useClearShippingMutation();
+  const { data: userInfo } = useGetMeQuery();
   const navigate = useNavigate();
-  let emailFromToken = "";
+  let emailFromCookie = userInfo?.email ?? "";
 
-  if (token) {
-    const payload = jwtDecode<TokenPayload>(token);
-
-    emailFromToken = payload.sub || "";
-  }
   const methods = useForm({
-    mode: "onBlur", // validate only on Blur not on every key stroke
+    mode: "onBlur", // validate only on Blur not on every keystroke
     shouldUnregister: false, // unmount fields not needed
     resolver: yupResolver(checkoutSchema),
     defaultValues: {
       userId: null,
-      email: emailFromToken,
+      email: emailFromCookie,
       shipMethodId: 1,
       shippingAddress: {
         name: "",
@@ -138,7 +128,7 @@ function PaymentContainer(): React.ReactElement {
     });
   };
 
-  // on Approve Order Paypal
+  // on Approve Order PayPal
   const onApproveOrder = async (data: any) => {
     // clear cart, promo, and ship
     await clearCart();
