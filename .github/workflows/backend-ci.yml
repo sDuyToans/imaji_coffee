@@ -27,6 +27,8 @@ jobs:
 
       - name: Build with Maven
         run: mvn clean verify
+        env:
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
 
   deploy:
     needs: build
