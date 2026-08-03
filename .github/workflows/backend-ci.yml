@@ -47,24 +47,17 @@ jobs:
     needs: build
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
+    environment: Production
     permissions:
       deployments: write
 
     steps:
-      - name: Debug Render secrets presence
-        run: |
-          echo "::notice::RENDER_SERVICE_ID length is ${#RENDER_SERVICE_ID}"
-          echo "::notice::RENDER_API_KEY length is ${#RENDER_API_KEY}"
-        env:
-          RENDER_SERVICE_ID: ${{ secrets.RENDER_SERVICE_ID }}
-          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
-
       - name: Deploy to Render
         uses: JorgeLNJunior/render-deploy@v1.5.0
         with:
           service_id: ${{ secrets.RENDER_SERVICE_ID }}
           api_key: ${{ secrets.RENDER_API_KEY }}
           github_deployment: true
-          deployment_environment: 'production'
+          deployment_environment: 'Production'
           github_token: ${{ secrets.GITHUB_TOKEN }}
           wait_deploy: true
