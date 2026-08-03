@@ -9,6 +9,9 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: imaji_coffee_be
 
     steps:
       - name: Checkout code
@@ -20,6 +23,7 @@ jobs:
           distribution: temurin
           java-version: '21'
           cache: maven
+          cache-dependency-path: imaji_coffee_be/pom.xml
 
       - name: Build with Maven
         run: mvn clean verify
