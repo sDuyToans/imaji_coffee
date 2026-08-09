@@ -32,7 +32,7 @@ public class ChatMessage extends BaseEntity {
     @Column(name = "sender_type", nullable = false)
     private SenderType senderType;
 
-    @Column(name = "sender_id", nullable = false)
+    @Column(name = "sender_id")
     private Long senderId;
 
     @Column(name = "sender_name")

@@ -1,5 +1,9 @@
 package com.duytoan.imajicoffee.imaji_coffee_be.services.chat;
 
+import com.duytoan.imajicoffee.imaji_coffee_be.entities.user.UserRole;
+import com.duytoan.imajicoffee.imaji_coffee_be.enums.RoleName;
+import com.duytoan.imajicoffee.imaji_coffee_be.repository.auth.UserRoleRepository;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
@@ -10,6 +14,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 
 import java.security.Principal;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -23,9 +28,12 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class AdminPresenceService {
 
     private static final String ADMIN_AUTHORITY = "ROLE_ADMIN";
+
+    private final UserRoleRepository userRoleRepository;
 
     /** sessionId -> admin userId, for sessions held by admins */
     private final Map<String, Long> adminSessions = new ConcurrentHashMap<>();
@@ -35,29 +43,23 @@ public class AdminPresenceService {
     @EventListener
     public void onSessionConnected(SessionConnectedEvent event) {
         Principal user = event.getUser();
-        if (!(user instanceof Authentication authentication)) {
+        if (user == null) {
             return;
         }
 
-        boolean isAdmin = authentication.getAuthorities().stream()
-                .anyMatch(authority -> ADMIN_AUTHORITY.equals(authority.getAuthority()));
-        if (!isAdmin) {
+        Long adminId = resolveAdminId(user);
+        if (adminId == null) {
             return;
         }
 
-        try {
-            Long adminId = Long.parseLong(authentication.getName());
-            String sessionId = event.getMessage() != null
-                    ? StompHeaderAccessor.wrap(event.getMessage()).getSessionId()
-                    : null;
-            if (sessionId != null) {
-                adminSessions.put(sessionId, adminId);
-            }
-            onlineAdmins.add(adminId);
-            log.debug("Admin {} connected (session {})", adminId, sessionId);
-        } catch (NumberFormatException e) {
-            log.warn("Unable to resolve admin id from websocket principal {}", authentication.getName());
+        String sessionId = event.getMessage() != null
+                ? StompHeaderAccessor.wrap(event.getMessage()).getSessionId()
+                : null;
+        if (sessionId != null) {
+            adminSessions.put(sessionId, adminId);
         }
+        onlineAdmins.add(adminId);
+        log.debug("Admin {} connected (session {})", adminId, sessionId);
     }
 
     @EventListener
@@ -79,5 +81,41 @@ public class AdminPresenceService {
      */
     public boolean isAnyAdminOnline() {
         return !onlineAdmins.isEmpty();
+    }
+
+    /**
+     * Resolves the connected principal to an admin userId, or null if the user is not an admin.
+     * The websocket principal is usually a simple principal carrying only the userId as its name
+     * (set during the handshake), so roles are verified against the database.
+     */
+    private Long resolveAdminId(Principal user) {
+        if (user instanceof Authentication authentication) {
+            boolean hasAdminAuthority = authentication.getAuthorities().stream()
+                    .anyMatch(authority -> ADMIN_AUTHORITY.equals(authority.getAuthority()));
+            if (!hasAdminAuthority) {
+                return null;
+            }
+        }
+
+        Long userId;
+        try {
+            userId = Long.parseLong(user.getName());
+        } catch (NumberFormatException e) {
+            log.warn("Unable to resolve user id from websocket principal {}", user.getName());
+            return null;
+        }
+
+        // If the principal carried no authorities (handshake principal), verify the role in the DB
+        if (!(user instanceof Authentication)) {
+            boolean isAdmin = userRoleRepository.findAllByRole_Name(RoleName.ROLE_ADMIN).stream()
+                    .map(UserRole::getUser)
+                    .filter(Objects::nonNull)
+                    .anyMatch(u -> userId.equals(u.getUserId()));
+            if (!isAdmin) {
+                return null;
+            }
+        }
+
+        return userId;
     }
 }

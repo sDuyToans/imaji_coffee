@@ -41,7 +41,6 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements IChatService {
 
-    private static final Long SYSTEM_SENDER_ID = 0L;
     private static final String SUPPORT_SENDER_NAME = "Imaji Support";
     private static final String ADMIN_OFFLINE_MESSAGE =
             "Hi! Our support team is currently offline. We've received your message "
@@ -223,7 +222,7 @@ public class ChatServiceImpl implements IChatService {
             ChatMessage autoReply = ChatMessage.builder()
                     .conversation(conversation)
                     .content(ADMIN_OFFLINE_MESSAGE)
-                    .senderId(SYSTEM_SENDER_ID)
+                    .senderId(null)
                     .senderName(SUPPORT_SENDER_NAME)
                     .senderType(SenderType.ADMIN)
                     .build();
@@ -262,7 +261,7 @@ public class ChatServiceImpl implements IChatService {
             if (ADMIN_OFFLINE_MESSAGE.equals(message.getContent())) {
                 return true;
             }
-            if (!SYSTEM_SENDER_ID.equals(message.getSenderId())) {
+            if (message.getSenderId() != null) {
                 // A human admin replied after any previous auto-reply
                 return false;
             }
