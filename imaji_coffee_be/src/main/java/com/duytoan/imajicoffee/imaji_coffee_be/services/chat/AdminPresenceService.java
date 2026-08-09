@@ -6,6 +6,7 @@ import com.duytoan.imajicoffee.imaji_coffee_be.repository.auth.UserRoleRepositor
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.event.EventListener;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
@@ -32,8 +33,11 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AdminPresenceService {
 
     private static final String ADMIN_AUTHORITY = "ROLE_ADMIN";
+    /** Broadcast topic clients can subscribe to for live admin online/offline updates */
+    public static final String PRESENCE_TOPIC = "/api/v1/topic/chat/admin/presence";
 
     private final UserRoleRepository userRoleRepository;
+    private final SimpMessagingTemplate messagingTemplate;
 
     /** sessionId -> admin userId, for sessions held by admins */
     private final Map<String, Long> adminSessions = new ConcurrentHashMap<>();
@@ -58,7 +62,11 @@ public class AdminPresenceService {
         if (sessionId != null) {
             adminSessions.put(sessionId, adminId);
         }
+        boolean wasOffline = onlineAdmins.isEmpty();
         onlineAdmins.add(adminId);
+        if (wasOffline) {
+            broadcastPresence(true);
+        }
         log.debug("Admin {} connected (session {})", adminId, sessionId);
     }
 
@@ -73,6 +81,17 @@ public class AdminPresenceService {
         if (!adminSessions.containsValue(adminId)) {
             onlineAdmins.remove(adminId);
             log.debug("Admin {} is now offline", adminId);
+            if (onlineAdmins.isEmpty()) {
+                broadcastPresence(false);
+            }
+        }
+    }
+
+    private void broadcastPresence(boolean adminOnline) {
+        try {
+            messagingTemplate.convertAndSend(PRESENCE_TOPIC, Map.of("adminOnline", adminOnline));
+        } catch (Exception e) {
+            log.warn("Failed to broadcast admin presence ({})", adminOnline, e);
         }
     }
 

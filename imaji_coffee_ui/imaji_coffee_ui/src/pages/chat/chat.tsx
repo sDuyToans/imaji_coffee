@@ -99,10 +99,13 @@ function ChatScreen(): ReactElement {
 
   const senderName = me?.username ?? "You";
   const isAdmin = me?.roles?.toUpperCase().includes("ADMIN") ?? false;
-  const { data: isAdminOnline } = useGetAdminOnlineStatusQuery(undefined, {
+  const { data: polledAdminOnline } = useGetAdminOnlineStatusQuery(undefined, {
     pollingInterval: 30000,
     skip: isAdmin,
   });
+  // Live presence pushed over the socket takes precedence; polling is the fallback
+  const [liveAdminOnline, setLiveAdminOnline] = useState<boolean | null>(null);
+  const isAdminOnline = liveAdminOnline ?? polledAdminOnline;
   const senderType: ChatSenderType = useMemo(
     () => (isAdmin ? "ADMIN" : "USER"),
     [isAdmin],
@@ -402,6 +405,27 @@ function ChatScreen(): ReactElement {
             );
           }),
         );
+
+        if (!isAdmin) {
+          subscriptionsRef.current.push(
+            client.subscribe(
+              "/api/v1/topic/chat/admin/presence",
+              (message: IMessage) => {
+                try {
+                  const payload = JSON.parse(message.body) as {
+                    adminOnline?: boolean;
+                  };
+
+                  if (typeof payload.adminOnline === "boolean") {
+                    setLiveAdminOnline(payload.adminOnline);
+                  }
+                } catch {
+                  // Ignore malformed presence events; polling remains as fallback.
+                }
+              },
+            ),
+          );
+        }
 
         subscriptionsRef.current.push(
           client.subscribe(

@@ -63,8 +63,11 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
      */
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
-        // Enable simple in-memory broker for multiple message prefixes
-        config.enableSimpleBroker("/api/v1/topic", "/api/v1/queue", "/user");
+        // Enable simple in-memory broker for multiple message prefixes.
+        // NOTE: do NOT add "/user" here - user destinations (/user/queue/...) are
+        // translated by UserDestinationMessageHandler into per-session "/queue/..."
+        // destinations, so "/queue" must be a broker prefix instead.
+        config.enableSimpleBroker("/api/v1/topic", "/api/v1/queue", "/queue");
 
         // Set prefix for messages from client to server
         config.setApplicationDestinationPrefixes("/api/v1/app");
