@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 
 import Modal from "@/components/layouts/modal.tsx";
 import AIChatSupport from "@/components/ui/support/ai_chat_support.tsx";
+import { useGetMeQuery } from "@/api/account/accountApi.ts";
 
 export default function SupportWidget(): ReactElement {
   const [isOpen, setIsOpen] = useState(false);
@@ -12,6 +13,8 @@ export default function SupportWidget(): ReactElement {
     null,
   );
   const navigate = useNavigate();
+  const { data: me } = useGetMeQuery();
+  const isLoggedIn = !!me;
 
   const handleClose = () => {
     setIsOpen(false);
@@ -21,7 +24,8 @@ export default function SupportWidget(): ReactElement {
   const handleSelectAdmin = () => {
     setSelectedOption("admin");
     setIsOpen(false);
-    navigate("/chat");
+    // Chat with admin is only available to logged-in users
+    navigate(isLoggedIn ? "/chat" : "/sign-in");
   };
 
   const handleSelectAI = () => {

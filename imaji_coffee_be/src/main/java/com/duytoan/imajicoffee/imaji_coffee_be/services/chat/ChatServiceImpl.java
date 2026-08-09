@@ -41,9 +41,16 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class ChatServiceImpl implements IChatService {
 
+    private static final Long SYSTEM_SENDER_ID = 0L;
+    private static final String SUPPORT_SENDER_NAME = "Imaji Support";
+    private static final String ADMIN_OFFLINE_MESSAGE =
+            "Hi! Our support team is currently offline. We've received your message "
+                    + "and will get back to you as soon as we're back online. Thank you for your patience!";
+
     private final ChatConversationRepository chatConversationRepository;
     private final ChatMessageRepository chatMessageRepository;
     private final AdminQueueAssignmentService adminQueueAssignmentService;
+    private final AdminPresenceService adminPresenceService;
     private final UserRepository userRepository;
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -190,8 +197,77 @@ public class ChatServiceImpl implements IChatService {
         routeMessageToConversationParticipants(conversationId, savedMessage);
         notifyMessageRecipient(conversationId, request, savedMessage);
 
+        if (toEntitySenderType(request.getSenderType()) == SenderType.USER) {
+            sendOfflineAutoReplyIfNeeded(conversation);
+        }
+
         log.debug("Saved message {} in conversation {}", savedMessage.getId(), conversationId);
         return toChatMessageResponse(savedMessage);
+    }
+
+    /**
+     * Sends a default auto-reply to the customer when no admin is currently online,
+     * letting them know the team will respond later. Sent at most once in a row per
+     * conversation to avoid spamming the thread on every message.
+     */
+    private void sendOfflineAutoReplyIfNeeded(ChatConversation conversation) {
+        try {
+            if (adminPresenceService.isAnyAdminOnline()) {
+                return;
+            }
+
+            if (wasOfflineAutoReplyAlreadySent(conversation.getId())) {
+                return;
+            }
+
+            ChatMessage autoReply = ChatMessage.builder()
+                    .conversation(conversation)
+                    .content(ADMIN_OFFLINE_MESSAGE)
+                    .senderId(SYSTEM_SENDER_ID)
+                    .senderName(SUPPORT_SENDER_NAME)
+                    .senderType(SenderType.ADMIN)
+                    .build();
+
+            ChatMessage savedReply = chatMessageRepository.save(autoReply);
+            conversation.setUpdatedAt(Instant.now());
+            conversation.setUpdatedBy("SYSTEM");
+            chatConversationRepository.save(conversation);
+
+            routeMessageToConversationParticipants(conversation.getId(), savedReply);
+
+            ChatMessageRequest notificationRequest = new ChatMessageRequest();
+            notificationRequest.setSenderType(SenderTypeDto.ADMIN);
+            notifyMessageRecipient(conversation.getId(), notificationRequest, savedReply);
+
+            log.debug("Sent admin-offline auto-reply {} in conversation {}", savedReply.getId(), conversation.getId());
+        } catch (Exception e) {
+            log.error("Failed to send admin-offline auto-reply for conversation {}", conversation.getId(), e);
+        }
+    }
+
+    /**
+     * Checks recent messages (newest first): returns true if an offline auto-reply was already
+     * sent and no human admin has replied since, so we don't repeat the notice on every message.
+     */
+    private boolean wasOfflineAutoReplyAlreadySent(Long conversationId) {
+        List<ChatMessage> recent = chatMessageRepository.findAllByConversationId(
+                conversationId,
+                PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "id"))
+        ).getContent();
+
+        for (ChatMessage message : recent) {
+            if (message.getSenderType() != SenderType.ADMIN) {
+                continue;
+            }
+            if (ADMIN_OFFLINE_MESSAGE.equals(message.getContent())) {
+                return true;
+            }
+            if (!SYSTEM_SENDER_ID.equals(message.getSenderId())) {
+                // A human admin replied after any previous auto-reply
+                return false;
+            }
+        }
+        return false;
     }
 
     /**

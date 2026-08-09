@@ -105,6 +105,9 @@ export const chatApi = apiSlice.injectEndpoints({
     getAdminConversations: builder.query<ChatConversationDto[], number>({
       query: (adminId) => `/chat/admin/${adminId}`,
     }),
+    getAdminOnlineStatus: builder.query<boolean, void>({
+      query: () => "/chat/admin/online",
+    }),
     reassignConversation: builder.mutation<
       ChatConversationDto,
       { conversationId: number; targetAdminId: number }
@@ -132,6 +135,7 @@ export const {
   useSendConversationMessageMutation,
   useMarkConversationAsReadMutation,
   useLazyGetAdminConversationsQuery,
+  useGetAdminOnlineStatusQuery,
   useReassignConversationMutation,
   useCloseConversationMutation,
 } = chatApi;

@@ -5,6 +5,7 @@ import com.duytoan.imajicoffee.imaji_coffee_be.dto.chat.ChatAdminNotificationRes
 import com.duytoan.imajicoffee.imaji_coffee_be.dto.chat.ChatMessageRequest;
 import com.duytoan.imajicoffee.imaji_coffee_be.dto.chat.ChatMessageResponse;
 import com.duytoan.imajicoffee.imaji_coffee_be.enums.SenderTypeDto;
+import com.duytoan.imajicoffee.imaji_coffee_be.services.chat.AdminPresenceService;
 import com.duytoan.imajicoffee.imaji_coffee_be.services.chat.IChatService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
@@ -30,7 +31,19 @@ import java.util.List;
 public class ChatRestController {
 
     private final IChatService chatService;
+    private final AdminPresenceService adminPresenceService;
     private final SimpMessagingTemplate messagingTemplate;
+
+    /**
+     * Check whether at least one admin is currently online (has an active chat socket connection).
+     *
+     * @return true if an admin is online
+     */
+    @GetMapping("/admin/online")
+    @PreAuthorize("hasAnyRole('USER', 'ADMIN')")
+    public boolean isAdminOnline() {
+        return adminPresenceService.isAnyAdminOnline();
+    }
 
     @PostMapping("/me/current")
     @PreAuthorize("hasRole('USER')")

@@ -23,7 +23,6 @@ public class PublicPathConfig {
                 "/api/v1/webhooks/**",
                 "/api/v1/ship-methods/**",
                 "/api/v1/auth/**",
-                "/api/v1/chat/**",
                 "/api/v1/ws/**",
                 "/actuator/health",
                 "/error"

@@ -20,6 +20,7 @@ import {
   useMarkConversationAsReadMutation,
   useReassignConversationMutation,
   useSendConversationMessageMutation,
+  useGetAdminOnlineStatusQuery,
 } from "@/api/chat/chatApi.ts";
 
 const CHAT_API_BASE_URL = import.meta.env.VITE_API_BASE_URL
@@ -98,6 +99,10 @@ function ChatScreen(): ReactElement {
 
   const senderName = me?.username ?? "You";
   const isAdmin = me?.roles?.toUpperCase().includes("ADMIN") ?? false;
+  const { data: isAdminOnline } = useGetAdminOnlineStatusQuery(undefined, {
+    pollingInterval: 30000,
+    skip: isAdmin,
+  });
   const senderType: ChatSenderType = useMemo(
     () => (isAdmin ? "ADMIN" : "USER"),
     [isAdmin],
@@ -1058,6 +1063,13 @@ function ChatScreen(): ReactElement {
             }
             description="You can review the history below, but sending new messages is disabled."
             title="This conversation is closed"
+          />
+        )}
+
+        {!isAdmin && isAdminOnline === false && !isChatClosed && (
+          <InfoBanner
+            description="Our support team is currently offline. You can leave a message here and we'll get back to you as soon as we're back online."
+            title="Admin is offline"
           />
         )}
 
