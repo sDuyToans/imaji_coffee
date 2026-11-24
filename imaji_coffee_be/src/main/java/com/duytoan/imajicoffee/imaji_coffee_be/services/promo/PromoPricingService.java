@@ -105,8 +105,8 @@ public class PromoPricingService {
                 discount = promo.getDiscountValue().min(effectiveSubtotal).setScale(2, RoundingMode.HALF_UP);
             }
             case "free_shipping" -> {
+                // Keep shipping before the promotion; consumers subtract its waiver once as a discount.
                 discount = safeShipping;
-                safeShipping = BigDecimal.ZERO.setScale(2, RoundingMode.HALF_UP);
             }
             default -> {
                 return rejected("Promo code is not supported", "invalid-type", shippingAmount);

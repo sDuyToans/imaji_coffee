@@ -8,6 +8,8 @@ import com.duytoan.imajicoffee.imaji_coffee_be.entities.product.PromoProductId;
 import com.duytoan.imajicoffee.imaji_coffee_be.repository.product.PromoUsageRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -116,19 +118,25 @@ class PromoPricingServiceTest {
         assertThat(result.discountAmount()).isEqualByComparingTo("20.00");
     }
 
-    @Test
-    void evaluate_appliesFreeShippingDiscount() {
+    @ParameterizedTest
+    @ValueSource(strings = {"5.00", "0.00", "20.00", "2.35"})
+    void evaluate_appliesFreeShippingDiscountOnce(String shipping) {
         PromoPricingService service = new PromoPricingService(promoUsageRepository);
         Promo promo = basePromo("free_shipping", BigDecimal.ZERO);
 
         PromoPricingSnapshot result = service.evaluate(
                 promo, 10L, List.of(item(1L, "coffee_baverage", "10.00", 1)),
-                new BigDecimal("10.00"), new BigDecimal("5.00"), true
+                new BigDecimal("10.00"), new BigDecimal(shipping), true
         );
 
         assertThat(result.accepted()).isTrue();
-        assertThat(result.discountAmount()).isEqualByComparingTo("5.00");
-        assertThat(result.shippingAmount()).isEqualByComparingTo("0.00");
+        assertThat(result.discountAmount()).isEqualByComparingTo(shipping);
+        assertThat(result.shippingAmount()).isEqualByComparingTo(shipping);
+        assertThat(result.discountAmount().scale()).isEqualTo(2);
+        assertThat(result.shippingAmount().scale()).isEqualTo(2);
+        assertThat(new BigDecimal("10.00").add(new BigDecimal("1.00"))
+                .add(result.shippingAmount()).subtract(result.discountAmount()))
+                .isEqualByComparingTo("11.00");
     }
 
     @Test
